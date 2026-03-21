@@ -1,0 +1,37 @@
+sources:
+  - name: OpenAI
+    type: official
+    mode: rss
+    url: https://openai.com/news/rss.xml
+    enabled: true
+  - name: Anthropic
+    type: official
+    mode: rss
+    url: https://www.anthropic.com/news/rss.xml
+    enabled: true
+  - name: TechCrunch AI
+    type: media
+    mode: rss
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+    enabled: true
+  - name: Google DeepMind
+    type: official
+    mode: rss
+    url: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/rss/
+    enabled: true
+  - name: Meta AI
+    type: official
+    mode: rss
+    url: https://about.fb.com/news/category/utility/recent-news/feed/
+    enabled: true
+    include_keywords:
+      - AI
+      - Meta AI
+      - Llama
+      - generative
+      - inference
+  - name: The Verge AI
+    type: media
+    mode: rss
+    url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+    enabled: true

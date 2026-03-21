@@ -1,0 +1,11 @@
+<rss version="2.0">
+  <channel>
+    <title>Sample Feed</title>
+    <item>
+      <title>OpenAI launches new model</title>
+      <link>https://example.com/openai-model</link>
+      <description>Launch details</description>
+      <pubDate>Sat, 21 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
