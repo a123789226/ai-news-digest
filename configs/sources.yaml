@@ -8,7 +8,7 @@ sources:
     type: official
     mode: rss
     url: https://www.anthropic.com/news/rss.xml
-    enabled: true
+    enabled: false
   - name: TechCrunch AI
     type: media
     mode: rss

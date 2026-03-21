@@ -1,6 +1,6 @@
 # AI News Digest
 
-A Go-based daily AI news digest that fetches recent articles from curated sources, ranks the strongest candidates, asks OpenAI to produce a concise digest, and sends the result to Telegram.
+A Go-based daily AI news digest that fetches recent articles from curated sources, ranks the strongest candidates, asks Gemini to produce a concise digest, and sends the result to Telegram.
 
 ## Current Scope
 - Delivery: Telegram only
@@ -8,7 +8,6 @@ A Go-based daily AI news digest that fetches recent articles from curated source
 - Source mode: RSS only in the first version
 - Sources included:
   - OpenAI
-  - Anthropic
   - TechCrunch AI
   - Google DeepMind
   - Meta AI
@@ -26,7 +25,7 @@ Behavior highlights:
 - Only articles from the last 24 hours are considered.
 - Official sources are ranked above media sources.
 - Duplicate coverage is collapsed within the current run.
-- If OpenAI fails, the app falls back to rule-ranked items.
+- If Gemini fails, the app falls back to rule-ranked items.
 - If there are fewer than 3 strong items, it sends only 1 or 2.
 
 ## Project Structure
@@ -45,7 +44,7 @@ internal/format/           Telegram message formatting
 
 ## Requirements
 - Go 1.22+
-- OpenAI API key
+- Gemini API key
 - Telegram bot token
 - Telegram chat ID
 
@@ -53,13 +52,13 @@ internal/format/           Telegram message formatting
 Copy `.env.example` into your own environment management setup.
 
 Required:
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
 Optional:
-- `OPENAI_MODEL`
-  - Default: `gpt-4.1-mini`
+- `GEMINI_MODEL`
+  - Default: `gemini-2.5-flash`
 
 ## Local Development
 Install dependencies and run tests:
@@ -72,7 +71,7 @@ go test ./...
 Run the digest locally:
 
 ```bash
-OPENAI_API_KEY=... \
+GEMINI_API_KEY=... \
 TELEGRAM_BOT_TOKEN=... \
 TELEGRAM_CHAT_ID=... \
 go run ./cmd/ai-news-digest
@@ -86,7 +85,8 @@ It supports:
 - manual execution via `workflow_dispatch`
 
 Add these repository secrets before running the workflow:
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional)
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
@@ -119,6 +119,7 @@ go test ./...
 - Social sources are not implemented yet.
 - Telegram message length splitting is not implemented yet.
 - There is no persistent storage, so cross-day duplicates are still possible.
+- Anthropic is temporarily disabled because its previous RSS endpoint returned `404`.
 
 ## Next Suggested Improvements
 - Add more sources beyond the current six feeds

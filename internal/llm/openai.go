@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -21,12 +22,12 @@ type Selector struct {
 }
 
 func NewSelectorFromEnv() *Selector {
-	modelName := os.Getenv("OPENAI_MODEL")
+	modelName := os.Getenv("GEMINI_MODEL")
 	if modelName == "" {
-		modelName = "gpt-4.1-mini"
+		modelName = "gemini-2.5-flash"
 	}
 	return &Selector{
-		apiKey: os.Getenv("OPENAI_API_KEY"),
+		apiKey: os.Getenv("GEMINI_API_KEY"),
 		client: &http.Client{Timeout: 30 * time.Second},
 		model:  modelName,
 	}
@@ -34,7 +35,7 @@ func NewSelectorFromEnv() *Selector {
 
 func (s *Selector) SelectAndSummarize(ctx context.Context, candidates []pipeline.Candidate) ([]model.DigestItem, error) {
 	if s.apiKey == "" {
-		return nil, fmt.Errorf("missing OPENAI_API_KEY")
+		return nil, fmt.Errorf("missing GEMINI_API_KEY")
 	}
 	if len(candidates) == 0 {
 		return nil, nil
@@ -46,11 +47,11 @@ func (s *Selector) SelectAndSummarize(ctx context.Context, candidates []pipeline
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.openai.com/v1/responses", bytes.NewReader(body))
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", s.model, s.apiKey)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
@@ -59,7 +60,8 @@ func (s *Selector) SelectAndSummarize(ctx context.Context, candidates []pipeline
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("openai status: %d", resp.StatusCode)
+		details, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return nil, fmt.Errorf("gemini status: %d: %s", resp.StatusCode, strings.TrimSpace(string(details)))
 	}
 
 	var result responseEnvelope
@@ -80,41 +82,37 @@ func (s *Selector) SelectAndSummarize(ctx context.Context, candidates []pipeline
 }
 
 type requestEnvelope struct {
-	Model string       `json:"model"`
-	Input []inputItem  `json:"input"`
-	Text  responseText `json:"text"`
+	Contents         []geminiContent  `json:"contents"`
+	GenerationConfig generationConfig `json:"generationConfig"`
 }
 
-type inputItem struct {
-	Role    string `json:"role"`
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
+type geminiContent struct {
+	Parts []geminiPart `json:"parts"`
 }
 
-type responseText struct {
-	Format responseFormat `json:"format"`
+type geminiPart struct {
+	Text string `json:"text"`
 }
 
-type responseFormat struct {
-	Type string `json:"type"`
+type generationConfig struct {
+	ResponseMIMEType string `json:"responseMimeType"`
 }
 
 type responseEnvelope struct {
-	Output []struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
+	Candidates []struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
 		} `json:"content"`
-	} `json:"output"`
+	} `json:"candidates"`
 }
 
 func (r responseEnvelope) OutputText() string {
-	for _, output := range r.Output {
-		for _, content := range output.Content {
-			if content.Type == "output_text" || content.Type == "text" {
-				return content.Text
+	for _, candidate := range r.Candidates {
+		for _, part := range candidate.Content.Parts {
+			if strings.TrimSpace(part.Text) != "" {
+				return part.Text
 			}
 		}
 	}
@@ -127,18 +125,14 @@ type digestResponse struct {
 
 func buildRequest(modelName string, candidates []pipeline.Candidate) requestEnvelope {
 	candidateJSON, _ := json.Marshal(candidates[:min(len(candidates), 10)])
-	prompt := "Select the top 1 to 3 AI news items. Return strict JSON with shape {\"items\":[{\"TitleEN\":string,\"SummaryZH\":string,\"WhyItMattersZH\":string,\"Source\":string,\"URL\":string}]}. Preserve the original English title. Write SummaryZH and WhyItMattersZH in Traditional Chinese. Do not invent facts. Candidates: " + string(candidateJSON)
-	content := struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	}{Type: "input_text", Text: prompt}
+	prompt := "Select the top 1 to 3 AI news items from the candidates below. Return strict JSON with this exact shape: {\"items\":[{\"TitleEN\":\"...\",\"SummaryZH\":\"...\",\"WhyItMattersZH\":\"...\",\"Source\":\"...\",\"URL\":\"...\"}]}. Preserve the original English title. Write SummaryZH and WhyItMattersZH in Traditional Chinese. Avoid generic wording. Do not invent facts. If fewer than 3 strong items exist, return fewer. Candidates: " + string(candidateJSON)
 	return requestEnvelope{
-		Model: modelName,
-		Input: []inputItem{{Role: "user", Content: []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		}{content}}},
-		Text: responseText{Format: responseFormat{Type: "json_object"}},
+		Contents: []geminiContent{{
+			Parts: []geminiPart{{Text: prompt}},
+		}},
+		GenerationConfig: generationConfig{
+			ResponseMIMEType: "application/json",
+		},
 	}
 }
 

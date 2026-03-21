@@ -55,10 +55,7 @@ func (p *RSSProvider) Fetch(ctx context.Context) ([]model.Article, error) {
 	}
 	for _, entry := range rss.Entries {
 		publishedAt, _ := parsePublished(entry.Published, entry.Updated)
-		link := entry.Link.Href
-		if link == "" && len(entry.Links) > 0 {
-			link = entry.Links[0].Href
-		}
+		link := firstAtomLink(entry.Links)
 		article := model.Article{
 			Source:      p.config.Name,
 			SourceType:  p.config.Type,
@@ -100,13 +97,13 @@ type atomItem struct {
 	Content    string     `xml:"content"`
 	Published  string     `xml:"published"`
 	Updated    string     `xml:"updated"`
-	Link       atomLink   `xml:"link"`
 	Links      []atomLink `xml:"link"`
 	Categories []string   `xml:"category>term"`
 }
 
 type atomLink struct {
 	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr"`
 }
 
 var htmlTagPattern = regexp.MustCompile(`<[^>]+>`)
@@ -168,4 +165,18 @@ func cleanText(value string) string {
 	value = htmlTagPattern.ReplaceAllString(value, " ")
 	value = strings.Join(strings.Fields(value), " ")
 	return strings.TrimSpace(value)
+}
+
+func firstAtomLink(links []atomLink) string {
+	for _, link := range links {
+		if strings.EqualFold(link.Rel, "alternate") && strings.TrimSpace(link.Href) != "" {
+			return strings.TrimSpace(link.Href)
+		}
+	}
+	for _, link := range links {
+		if strings.TrimSpace(link.Href) != "" {
+			return strings.TrimSpace(link.Href)
+		}
+	}
+	return ""
 }
