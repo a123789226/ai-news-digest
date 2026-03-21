@@ -27,6 +27,31 @@ var keywordScores = map[string]int{
 	"open source": 2,
 }
 
+var engineerPriorityKeywords = map[string]int{
+	"api":         4,
+	"sdk":         4,
+	"cli":         3,
+	"developer":   3,
+	"developers":  3,
+	"devtool":     3,
+	"agent":       3,
+	"agents":      3,
+	"coding":      3,
+	"code":        2,
+	"open source": 4,
+	"github":      3,
+	"copilot":     2,
+	"inference":   2,
+	"tooling":     2,
+	"framework":   3,
+	"library":     3,
+	"integration": 2,
+	"plugin":      2,
+	"oss":         2,
+	"assistant":   2,
+	"vscode":      2,
+}
+
 var penaltyKeywords = []string{"opinion", "how to", "tutorial", "guide"}
 var lowValueKeywords = []string{"video", "podcast", "newsletter", "what happened at"}
 var titleCleaner = regexp.MustCompile(`[^a-z0-9\s]+`)
@@ -152,8 +177,18 @@ func scoreArticle(article model.Article) int {
 	score := 0
 	score += sourceRank(article.SourceType) * 3
 	title := normalizeTitle(article.Title)
+	body := normalizeTitle(article.SummaryRaw)
 	for keyword, value := range keywordScores {
 		if strings.Contains(title, keyword) {
+			score += value
+		}
+	}
+	for keyword, value := range engineerPriorityKeywords {
+		if strings.Contains(title, keyword) {
+			score += value
+			continue
+		}
+		if body != "" && strings.Contains(body, keyword) {
 			score += value
 		}
 	}
@@ -225,6 +260,8 @@ func fallbackSummary(article model.Article) string {
 func fallbackWhyItMatters(article model.Article) string {
 	title := normalizeTitle(article.Title)
 	switch {
+	case isEngineerRelevant(article):
+		return "這則消息和 API、工具鏈、開發流程或開源生態直接相關，對軟體工程師的實際工作影響更大。"
 	case strings.Contains(title, "model") || strings.Contains(title, "launch") || strings.Contains(title, "release"):
 		return "這則消息涉及模型或產品能力變動，會直接影響你後續選型與追蹤重點。"
 	case strings.Contains(title, "policy") || strings.Contains(title, "court") || strings.Contains(title, "regulation"):
@@ -246,6 +283,20 @@ func isLowValueArticle(article model.Article) bool {
 	}
 	for _, keyword := range lowValueKeywords {
 		if strings.Contains(title, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func isEngineerRelevant(article model.Article) bool {
+	title := normalizeTitle(article.Title)
+	body := normalizeTitle(article.SummaryRaw)
+	for keyword := range engineerPriorityKeywords {
+		if strings.Contains(title, keyword) {
+			return true
+		}
+		if body != "" && strings.Contains(body, keyword) {
 			return true
 		}
 	}

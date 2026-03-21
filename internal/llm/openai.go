@@ -125,7 +125,7 @@ type digestResponse struct {
 
 func buildRequest(modelName string, candidates []pipeline.Candidate) requestEnvelope {
 	candidateJSON, _ := json.Marshal(candidates[:min(len(candidates), 10)])
-	prompt := "Select the top 1 to 3 AI news items from the candidates below. Return strict JSON with this exact shape: {\"items\":[{\"TitleEN\":\"...\",\"SummaryZH\":\"...\",\"WhyItMattersZH\":\"...\",\"Source\":\"...\",\"URL\":\"...\"}]}. Preserve the original English title. Write SummaryZH and WhyItMattersZH in Traditional Chinese. Avoid generic wording. Do not invent facts. If fewer than 3 strong items exist, return fewer. Candidates: " + string(candidateJSON)
+	prompt := "Select the top 1 to 3 AI news items from the candidates below. Prioritize items most relevant to software engineers first, especially API changes, SDKs, CLIs, developer tooling, coding assistants, agent frameworks, open-source releases, integrations, and anything that changes implementation choices or development workflow. Return strict JSON with this exact shape: {\"items\":[{\"TitleEN\":\"...\",\"SummaryZH\":\"...\",\"WhyItMattersZH\":\"...\",\"Source\":\"...\",\"URL\":\"...\"}]}. Preserve the original English title. Write SummaryZH and WhyItMattersZH in Traditional Chinese. Avoid generic wording. Do not invent facts. If fewer than 3 strong items exist, return fewer. Candidates: " + string(candidateJSON)
 	return requestEnvelope{
 		Contents: []geminiContent{{
 			Parts: []geminiPart{{Text: prompt}},

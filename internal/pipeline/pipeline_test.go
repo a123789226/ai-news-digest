@@ -83,3 +83,33 @@ func TestFallbackDigestItemsPrefersSourceDiversity(t *testing.T) {
 		t.Fatalf("expected source diversity, got duplicate source %s", items[0].Source)
 	}
 }
+
+func TestPrepareCandidatesPrioritizesEngineerRelevantNews(t *testing.T) {
+	now := time.Date(2026, 3, 21, 1, 0, 0, 0, time.UTC)
+	articles := []model.Article{
+		{
+			Source:      "TechCrunch AI",
+			SourceType:  "media",
+			Title:       "AI startup raises new funding round",
+			URL:         "https://example.com/funding",
+			PublishedAt: now.Add(-2 * time.Hour),
+			SummaryRaw:  "Funding announcement for expansion.",
+		},
+		{
+			Source:      "OpenAI",
+			SourceType:  "official",
+			Title:       "OpenAI launches new API and SDK for agent workflows",
+			URL:         "https://example.com/api-sdk",
+			PublishedAt: now.Add(-3 * time.Hour),
+			SummaryRaw:  "New API and SDK improve developer integration.",
+		},
+	}
+
+	candidates := PrepareCandidates(articles, now)
+	if len(candidates) != 2 {
+		t.Fatalf("expected 2 candidates, got %d", len(candidates))
+	}
+	if candidates[0].Article.URL != "https://example.com/api-sdk" {
+		t.Fatalf("expected engineering-relevant news first, got %s", candidates[0].Article.URL)
+	}
+}
