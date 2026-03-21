@@ -1,4 +1,22 @@
 sources:
+  - name: Anthropic API Release Notes
+    type: practical
+    mode: anthropic_release_notes
+    url: https://docs.anthropic.com/en/release-notes/api
+    enabled: true
+    max_items: 25
+  - name: OpenAI Agents SDK Releases
+    type: practical
+    mode: rss
+    url: https://github.com/openai/openai-agents-python/releases.atom
+    enabled: true
+    max_items: 20
+  - name: LangGraph Releases
+    type: practical
+    mode: rss
+    url: https://github.com/langchain-ai/langgraph/releases.atom
+    enabled: true
+    max_items: 20
   - name: OpenAI
     type: official
     mode: rss

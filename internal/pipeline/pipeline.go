@@ -148,6 +148,8 @@ func preferredArticle(current, existing model.Article) bool {
 
 func sourceRank(sourceType string) int {
 	switch sourceType {
+	case "practical":
+		return 4
 	case "official":
 		return 3
 	case "media":
