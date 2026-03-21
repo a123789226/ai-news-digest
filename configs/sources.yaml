@@ -7,9 +7,10 @@ sources:
     max_items: 50
   - name: Anthropic
     type: official
-    mode: rss
-    url: https://www.anthropic.com/news/rss.xml
-    enabled: false
+    mode: anthropic_news
+    url: https://www.anthropic.com/news
+    enabled: true
+    max_items: 30
   - name: TechCrunch AI
     type: media
     mode: rss

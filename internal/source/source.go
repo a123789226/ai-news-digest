@@ -60,6 +60,8 @@ func BuildProviders(fetcher *HTTPFetcher, configs []config.SourceConfig) []Provi
 		switch cfg.Mode {
 		case "rss":
 			providers = append(providers, NewRSSProvider(fetcher, cfg))
+		case "anthropic_news":
+			providers = append(providers, NewAnthropicNewsProvider(fetcher, cfg))
 		}
 	}
 	return providers
