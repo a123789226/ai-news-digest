@@ -28,6 +28,7 @@ var keywordScores = map[string]int{
 }
 
 var penaltyKeywords = []string{"opinion", "how to", "tutorial", "guide"}
+var lowValueKeywords = []string{"video", "podcast", "newsletter", "what happened at"}
 var titleCleaner = regexp.MustCompile(`[^a-z0-9\s]+`)
 
 func PrepareCandidates(articles []model.Article, now time.Time) []Candidate {
@@ -53,18 +54,23 @@ func PrepareCandidates(articles []model.Article, now time.Time) []Candidate {
 }
 
 func FallbackDigestItems(candidates []Candidate, limit int) []model.DigestItem {
-	if limit > len(candidates) {
-		limit = len(candidates)
-	}
-	items := make([]model.DigestItem, 0, limit)
-	for _, candidate := range candidates[:limit] {
+	items := make([]model.DigestItem, 0, min(limit, len(candidates)))
+	seenSources := make(map[string]struct{})
+	for _, candidate := range candidates {
+		if len(items) >= limit {
+			break
+		}
+		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
+			continue
+		}
 		items = append(items, model.DigestItem{
 			TitleEN:        candidate.Article.Title,
 			SummaryZH:      fallbackSummary(candidate.Article),
-			WhyItMattersZH: "這則消息來自高分來源，值得你快速查看原文。",
+			WhyItMattersZH: fallbackWhyItMatters(candidate.Article),
 			Source:         candidate.Article.Source,
 			URL:            candidate.Article.URL,
 		})
+		seenSources[candidate.Article.Source] = struct{}{}
 	}
 	return items
 }
@@ -74,6 +80,9 @@ func filterRecent(articles []model.Article, now time.Time) []model.Article {
 	filtered := make([]model.Article, 0, len(articles))
 	for _, article := range articles {
 		if article.URL == "" || article.Title == "" || article.PublishedAt.IsZero() {
+			continue
+		}
+		if isLowValueArticle(article) {
 			continue
 		}
 		if article.PublishedAt.Before(cutoff) || article.PublishedAt.After(now.Add(5*time.Minute)) {
@@ -153,6 +162,9 @@ func scoreArticle(article model.Article) int {
 			score -= 2
 		}
 	}
+	if isLowValueArticle(article) {
+		score -= 5
+	}
 	return score
 }
 
@@ -208,6 +220,45 @@ func fallbackSummary(article model.Article) string {
 		return string(runes[:120]) + "..."
 	}
 	return summary
+}
+
+func fallbackWhyItMatters(article model.Article) string {
+	title := normalizeTitle(article.Title)
+	switch {
+	case strings.Contains(title, "model") || strings.Contains(title, "launch") || strings.Contains(title, "release"):
+		return "這則消息涉及模型或產品能力變動，會直接影響你後續選型與追蹤重點。"
+	case strings.Contains(title, "policy") || strings.Contains(title, "court") || strings.Contains(title, "regulation"):
+		return "這則消息牽涉政策或法律動向，可能改變 AI 產品與市場的限制條件。"
+	case strings.Contains(title, "funding") || strings.Contains(title, "acquisition") || strings.Contains(title, "partnership"):
+		return "這則消息反映產業資源流向，通常會影響接下來的競爭格局。"
+	case article.SourceType == "official":
+		return "這是官方來源的直接更新，資訊可信度高，值得優先閱讀。"
+	default:
+		return "這則消息在當日候選中排名靠前，值得你快速了解原文內容。"
+	}
+}
+
+func isLowValueArticle(article model.Article) bool {
+	title := normalizeTitle(article.Title)
+	url := strings.ToLower(article.URL)
+	if strings.Contains(url, "/video/") {
+		return true
+	}
+	for _, keyword := range lowValueKeywords {
+		if strings.Contains(title, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAlternativeSource(candidates []Candidate, seenSources map[string]struct{}) bool {
+	for _, candidate := range candidates {
+		if _, ok := seenSources[candidate.Article.Source]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 func min(a, b int) int {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/boxiang/ai-news-digest/internal/model"
@@ -69,6 +70,7 @@ func (s *Selector) SelectAndSummarize(ctx context.Context, candidates []pipeline
 	if jsonText == "" {
 		return nil, fmt.Errorf("empty model output")
 	}
+	jsonText = extractJSONObject(jsonText)
 
 	var parsed digestResponse
 	if err := json.Unmarshal([]byte(jsonText), &parsed); err != nil {
@@ -145,4 +147,23 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func extractJSONObject(text string) string {
+	text = strings.TrimSpace(text)
+	if strings.HasPrefix(text, "```") {
+		lines := strings.Split(text, "\n")
+		if len(lines) >= 3 {
+			text = strings.Join(lines[1:len(lines)-1], "\n")
+			text = strings.TrimSpace(text)
+		}
+	}
+
+	start := strings.Index(text, "{")
+	end := strings.LastIndex(text, "}")
+	if start >= 0 && end > start {
+		return text[start : end+1]
+	}
+
+	return text
 }

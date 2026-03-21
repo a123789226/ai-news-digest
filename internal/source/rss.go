@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"html"
+	"regexp"
 	"strings"
 	"time"
 
@@ -107,6 +109,8 @@ type atomLink struct {
 	Href string `xml:"href,attr"`
 }
 
+var htmlTagPattern = regexp.MustCompile(`<[^>]+>`)
+
 func parsePublished(values ...string) (time.Time, error) {
 	layouts := []string{time.RFC1123Z, time.RFC1123, time.RFC3339, time.RFC822Z, time.RFC822, "2006-01-02T15:04:05-07:00"}
 	for _, value := range values {
@@ -125,7 +129,8 @@ func parsePublished(values ...string) (time.Time, error) {
 
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
+		value = cleanText(value)
+		if value != "" {
 			return value
 		}
 	}
@@ -156,4 +161,11 @@ func matchesIncludeKeywords(article model.Article, keywords []string, categories
 	}
 
 	return false
+}
+
+func cleanText(value string) string {
+	value = html.UnescapeString(value)
+	value = htmlTagPattern.ReplaceAllString(value, " ")
+	value = strings.Join(strings.Fields(value), " ")
+	return strings.TrimSpace(value)
 }

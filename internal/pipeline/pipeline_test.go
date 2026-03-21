@@ -49,3 +49,37 @@ func TestFallbackDigestItemsLimit(t *testing.T) {
 		t.Fatalf("unexpected title: %s", items[0].TitleEN)
 	}
 }
+
+func TestPrepareCandidatesFiltersLowValueVideo(t *testing.T) {
+	now := time.Date(2026, 3, 21, 1, 0, 0, 0, time.UTC)
+	articles := []model.Article{
+		{
+			Source:      "TechCrunch AI",
+			SourceType:  "media",
+			Title:       "What happened at Nvidia GTC",
+			URL:         "https://example.com/video/gtc-recap",
+			PublishedAt: now.Add(-2 * time.Hour),
+		},
+	}
+
+	candidates := PrepareCandidates(articles, now)
+	if len(candidates) != 0 {
+		t.Fatalf("expected video recap to be filtered out, got %d candidates", len(candidates))
+	}
+}
+
+func TestFallbackDigestItemsPrefersSourceDiversity(t *testing.T) {
+	candidates := []Candidate{
+		{Article: model.Article{Title: "A", Source: "TechCrunch AI", URL: "https://a"}},
+		{Article: model.Article{Title: "B", Source: "TechCrunch AI", URL: "https://b"}},
+		{Article: model.Article{Title: "C", Source: "OpenAI", URL: "https://c"}},
+	}
+
+	items := FallbackDigestItems(candidates, 2)
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(items))
+	}
+	if items[0].Source == items[1].Source {
+		t.Fatalf("expected source diversity, got duplicate source %s", items[0].Source)
+	}
+}
