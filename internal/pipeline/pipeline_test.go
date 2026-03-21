@@ -129,3 +129,25 @@ func TestSelectFallbackCandidatesPrefersTwoPracticalItems(t *testing.T) {
 		t.Fatalf("expected first two selections to be engineer-relevant")
 	}
 }
+
+func TestSelectFallbackCandidatesFillsWithPlatformThenNews(t *testing.T) {
+	candidates := []Candidate{
+		{Article: model.Article{Title: "New SDK for agent workflows", SummaryRaw: "Developer tooling update", Source: "OpenAI", SourceType: "practical", URL: "https://example.com/sdk"}},
+		{Article: model.Article{Title: "GPT model pricing update", SummaryRaw: "API pricing changes", Source: "OpenAI News", SourceType: "official", URL: "https://example.com/pricing"}},
+		{Article: model.Article{Title: "AI company raises major funding", SummaryRaw: "Industry move", Source: "TechCrunch AI", SourceType: "media", URL: "https://example.com/funding"}},
+	}
+
+	selected := selectFallbackCandidates(candidates, 3)
+	if len(selected) != 3 {
+		t.Fatalf("expected 3 selected candidates, got %d", len(selected))
+	}
+	if classifyTier(selected[0].Article) != tierPractical {
+		t.Fatalf("expected first item to be practical")
+	}
+	if classifyTier(selected[1].Article) != tierPlatform {
+		t.Fatalf("expected second item to be platform")
+	}
+	if classifyTier(selected[2].Article) != tierNews {
+		t.Fatalf("expected third item to be news")
+	}
+}

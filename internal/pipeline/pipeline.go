@@ -16,6 +16,14 @@ type Candidate struct {
 	NormalizedTitle string
 }
 
+type candidateTier int
+
+const (
+	tierNews candidateTier = iota
+	tierPlatform
+	tierPractical
+)
+
 var keywordScores = map[string]int{
 	"release":     2,
 	"launch":      2,
@@ -314,34 +322,23 @@ func selectFallbackCandidates(candidates []Candidate, limit int) []Candidate {
 
 	selected := make([]Candidate, 0, min(limit, len(candidates)))
 	seenSources := make(map[string]struct{})
-	needPractical := min(2, limit)
-
-	for _, candidate := range candidates {
-		if len(selected) >= needPractical {
-			break
+	for _, tier := range []candidateTier{tierPractical, tierPlatform, tierNews} {
+		for _, candidate := range candidates {
+			if len(selected) >= limit {
+				break
+			}
+			if containsCandidate(selected, candidate.Article.URL) {
+				continue
+			}
+			if classifyTier(candidate.Article) != tier {
+				continue
+			}
+			if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
+				continue
+			}
+			selected = append(selected, candidate)
+			seenSources[candidate.Article.Source] = struct{}{}
 		}
-		if !isEngineerRelevant(candidate.Article) {
-			continue
-		}
-		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
-			continue
-		}
-		selected = append(selected, candidate)
-		seenSources[candidate.Article.Source] = struct{}{}
-	}
-
-	for _, candidate := range candidates {
-		if len(selected) >= limit {
-			break
-		}
-		if containsCandidate(selected, candidate.Article.URL) {
-			continue
-		}
-		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
-			continue
-		}
-		selected = append(selected, candidate)
-		seenSources[candidate.Article.Source] = struct{}{}
 	}
 
 	for _, candidate := range candidates {
@@ -364,6 +361,27 @@ func containsCandidate(candidates []Candidate, url string) bool {
 		}
 	}
 	return false
+}
+
+func classifyTier(article model.Article) candidateTier {
+	if article.SourceType == "practical" {
+		return tierPractical
+	}
+
+	title := normalizeTitle(article.Title)
+	if strings.Contains(title, "model") ||
+		strings.Contains(title, "pricing") ||
+		strings.Contains(title, "rate limit") ||
+		strings.Contains(title, "launch") ||
+		strings.Contains(title, "release") {
+		return tierPlatform
+	}
+
+	if isEngineerRelevant(article) {
+		return tierPractical
+	}
+
+	return tierNews
 }
 
 func min(a, b int) int {
