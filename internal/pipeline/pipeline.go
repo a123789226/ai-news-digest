@@ -79,15 +79,9 @@ func PrepareCandidates(articles []model.Article, now time.Time) []Candidate {
 }
 
 func FallbackDigestItems(candidates []Candidate, limit int) []model.DigestItem {
-	items := make([]model.DigestItem, 0, min(limit, len(candidates)))
-	seenSources := make(map[string]struct{})
-	for _, candidate := range candidates {
-		if len(items) >= limit {
-			break
-		}
-		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
-			continue
-		}
+	selected := selectFallbackCandidates(candidates, limit)
+	items := make([]model.DigestItem, 0, len(selected))
+	for _, candidate := range selected {
 		items = append(items, model.DigestItem{
 			TitleEN:        candidate.Article.Title,
 			SummaryZH:      fallbackSummary(candidate.Article),
@@ -95,7 +89,6 @@ func FallbackDigestItems(candidates []Candidate, limit int) []model.DigestItem {
 			Source:         candidate.Article.Source,
 			URL:            candidate.Article.URL,
 		})
-		seenSources[candidate.Article.Source] = struct{}{}
 	}
 	return items
 }
@@ -306,6 +299,65 @@ func isEngineerRelevant(article model.Article) bool {
 func hasAlternativeSource(candidates []Candidate, seenSources map[string]struct{}) bool {
 	for _, candidate := range candidates {
 		if _, ok := seenSources[candidate.Article.Source]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
+func selectFallbackCandidates(candidates []Candidate, limit int) []Candidate {
+	if limit <= 0 || len(candidates) == 0 {
+		return nil
+	}
+
+	selected := make([]Candidate, 0, min(limit, len(candidates)))
+	seenSources := make(map[string]struct{})
+	needPractical := min(2, limit)
+
+	for _, candidate := range candidates {
+		if len(selected) >= needPractical {
+			break
+		}
+		if !isEngineerRelevant(candidate.Article) {
+			continue
+		}
+		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
+			continue
+		}
+		selected = append(selected, candidate)
+		seenSources[candidate.Article.Source] = struct{}{}
+	}
+
+	for _, candidate := range candidates {
+		if len(selected) >= limit {
+			break
+		}
+		if containsCandidate(selected, candidate.Article.URL) {
+			continue
+		}
+		if _, ok := seenSources[candidate.Article.Source]; ok && hasAlternativeSource(candidates, seenSources) {
+			continue
+		}
+		selected = append(selected, candidate)
+		seenSources[candidate.Article.Source] = struct{}{}
+	}
+
+	for _, candidate := range candidates {
+		if len(selected) >= limit {
+			break
+		}
+		if containsCandidate(selected, candidate.Article.URL) {
+			continue
+		}
+		selected = append(selected, candidate)
+	}
+
+	return selected
+}
+
+func containsCandidate(candidates []Candidate, url string) bool {
+	for _, candidate := range candidates {
+		if candidate.Article.URL == url {
 			return true
 		}
 	}

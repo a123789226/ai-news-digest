@@ -113,3 +113,19 @@ func TestPrepareCandidatesPrioritizesEngineerRelevantNews(t *testing.T) {
 		t.Fatalf("expected engineering-relevant news first, got %s", candidates[0].Article.URL)
 	}
 }
+
+func TestSelectFallbackCandidatesPrefersTwoPracticalItems(t *testing.T) {
+	candidates := []Candidate{
+		{Article: model.Article{Title: "Company raises major funding", SummaryRaw: "Expansion plans", Source: "TechCrunch AI", URL: "https://example.com/funding"}},
+		{Article: model.Article{Title: "New SDK for agent workflows", SummaryRaw: "Developer tooling update", Source: "OpenAI", URL: "https://example.com/sdk"}, Score: 10},
+		{Article: model.Article{Title: "CLI adds background tasks", SummaryRaw: "Useful for engineers", Source: "Anthropic", URL: "https://example.com/cli"}, Score: 9},
+	}
+
+	selected := selectFallbackCandidates(candidates, 3)
+	if len(selected) != 3 {
+		t.Fatalf("expected 3 selected candidates, got %d", len(selected))
+	}
+	if !isEngineerRelevant(selected[0].Article) || !isEngineerRelevant(selected[1].Article) {
+		t.Fatalf("expected first two selections to be engineer-relevant")
+	}
+}
