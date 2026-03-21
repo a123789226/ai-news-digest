@@ -39,6 +39,9 @@ func (p *RSSProvider) Fetch(ctx context.Context) ([]model.Article, error) {
 
 	articles := make([]model.Article, 0, len(rss.Channel.Items)+len(rss.Entries))
 	for _, item := range rss.Channel.Items {
+		if reachedLimit(articles, p.config.MaxItems) {
+			break
+		}
 		publishedAt, _ := parsePublished(item.PubDate, item.Updated)
 		article := model.Article{
 			Source:      p.config.Name,
@@ -54,6 +57,9 @@ func (p *RSSProvider) Fetch(ctx context.Context) ([]model.Article, error) {
 		articles = append(articles, article)
 	}
 	for _, entry := range rss.Entries {
+		if reachedLimit(articles, p.config.MaxItems) {
+			break
+		}
 		publishedAt, _ := parsePublished(entry.Published, entry.Updated)
 		link := firstAtomLink(entry.Links)
 		article := model.Article{
@@ -179,4 +185,8 @@ func firstAtomLink(links []atomLink) string {
 		}
 	}
 	return ""
+}
+
+func reachedLimit(articles []model.Article, maxItems int) bool {
+	return maxItems > 0 && len(articles) >= maxItems
 }

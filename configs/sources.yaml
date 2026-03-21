@@ -4,6 +4,7 @@ sources:
     mode: rss
     url: https://openai.com/news/rss.xml
     enabled: true
+    max_items: 50
   - name: Anthropic
     type: official
     mode: rss
@@ -14,16 +15,19 @@ sources:
     mode: rss
     url: https://techcrunch.com/category/artificial-intelligence/feed/
     enabled: true
+    max_items: 50
   - name: Google DeepMind
     type: official
     mode: rss
     url: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/rss/
     enabled: true
+    max_items: 50
   - name: Meta AI
     type: official
     mode: rss
     url: https://about.fb.com/news/category/utility/recent-news/feed/
     enabled: true
+    max_items: 30
     include_keywords:
       - AI
       - Meta AI
@@ -35,3 +39,4 @@ sources:
     mode: rss
     url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
     enabled: true
+    max_items: 50

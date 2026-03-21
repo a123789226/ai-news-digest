@@ -108,3 +108,58 @@ func TestRSSProviderIncludeKeywords(t *testing.T) {
 		t.Fatalf("unexpected title: %s", articles[0].Title)
 	}
 }
+
+func TestRSSProviderRespectsMaxItems(t *testing.T) {
+	payload := `
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>One</title>
+      <link>https://example.com/1</link>
+      <description>First</description>
+      <pubDate>Sat, 21 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Two</title>
+      <link>https://example.com/2</link>
+      <description>Second</description>
+      <pubDate>Sat, 21 Mar 2026 00:10:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Three</title>
+      <link>https://example.com/3</link>
+      <description>Third</description>
+      <pubDate>Sat, 21 Mar 2026 00:20:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>`
+
+	provider := NewRSSProvider(NewHTTPFetcher(&http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/rss+xml"}},
+				Body:       io.NopCloser(strings.NewReader(payload)),
+				Request:    req,
+			}, nil
+		}),
+	}), config.SourceConfig{
+		Name:     "OpenAI",
+		Type:     "official",
+		Mode:     "rss",
+		URL:      "https://example.com/openai-feed.xml",
+		Enabled:  true,
+		MaxItems: 2,
+	})
+
+	articles, err := provider.Fetch(context.Background())
+	if err != nil {
+		t.Fatalf("fetch rss: %v", err)
+	}
+	if len(articles) != 2 {
+		t.Fatalf("expected 2 articles, got %d", len(articles))
+	}
+	if articles[1].Title != "Two" {
+		t.Fatalf("expected second item to be kept before limit, got %s", articles[1].Title)
+	}
+}

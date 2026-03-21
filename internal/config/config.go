@@ -18,6 +18,7 @@ type SourceConfig struct {
 	URL             string   `yaml:"url"`
 	Enabled         bool     `yaml:"enabled"`
 	IncludeKeywords []string `yaml:"include_keywords"`
+	MaxItems        int      `yaml:"max_items"`
 }
 
 func Load(path string) (Config, error) {
