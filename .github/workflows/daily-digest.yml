@@ -2,7 +2,7 @@ name: Daily AI News Digest
 
 on:
   schedule:
-    - cron: '18 3 * * *'
+    - cron: '32 3 * * *'
   workflow_dispatch:
 
 jobs:
