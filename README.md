@@ -81,7 +81,7 @@ go run ./cmd/ai-news-digest
 The workflow is defined in `.github/workflows/daily-digest.yml`.
 
 It supports:
-- scheduled execution at `01:00 UTC` (`09:00 Asia/Taipei`)
+- scheduled execution at `23:12 UTC` (`07:12 Asia/Taipei`)
 - manual execution via `workflow_dispatch`
 
 Add these repository secrets before running the workflow:

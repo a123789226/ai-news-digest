@@ -1,12 +1,12 @@
 # AI News Digest Design
 
 ## Overview
-Build a Go-based daily AI news digest tool that runs once per day via GitHub Actions at 09:00 Asia/Taipei. The tool fetches AI-related news from a curated whitelist of official and mainstream media sources, filters to the last 24 hours, deduplicates overlapping coverage, ranks candidates with deterministic rules, then uses OpenAI to select and summarize the most important 1 to 3 items. The final digest is delivered to Telegram only.
+Build a Go-based daily AI news digest tool that runs once per day via GitHub Actions at 07:12 Asia/Taipei. The tool fetches AI-related news from a curated whitelist of official and mainstream media sources, filters to the last 24 hours, deduplicates overlapping coverage, ranks candidates with deterministic rules, then uses OpenAI to select and summarize the most important 1 to 3 items. The final digest is delivered to Telegram only.
 
 The system is intentionally stateless. It does not store historical data, does not run as a long-lived service, and does not attempt cross-day deduplication. If a given day has fewer than three high-quality items, it sends only one or two rather than padding with low-value content.
 
 ## Goals
-- Deliver a concise daily AI digest to Telegram at 09:00 Asia/Taipei.
+- Deliver a concise daily AI digest to Telegram at 07:12 Asia/Taipei.
 - Prioritize official sources, then mainstream media, with social signals used only as supporting input.
 - Keep the implementation simple and maintainable: Go CLI, GitHub Actions scheduler, no database.
 - Preserve output quality by using deterministic filtering and scoring before any LLM involvement.
@@ -25,7 +25,7 @@ The system is intentionally stateless. It does not store historical data, does n
 The application is a single-run Go CLI executed by GitHub Actions.
 
 Workflow characteristics:
-- Scheduled daily at `01:00 UTC`, equivalent to `09:00 Asia/Taipei`.
+- Scheduled daily at `23:12 UTC`, equivalent to `07:12 Asia/Taipei`.
 - Supports `workflow_dispatch` for manual runs.
 - Uses GitHub Secrets for runtime configuration.
 - Writes operational logs to GitHub Actions output.
